@@ -1,0 +1,29 @@
+{
+  "name": "astro-pov",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Show the night sky depending on the point of view of the observer.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.156.0",
+    "@react-three/fiber": "^8.14.0",
+    "@react-three/drei": "^9.52.0",
+    "zustand": "^4.4.0",
+    "@mui/material": "^5.14.7",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.2",
+    "vite": "^5.1.0",
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7"
+  }
+}
