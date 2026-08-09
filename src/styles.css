@@ -1,2 +1,15 @@
-body, html, #root { height: 100%; margin: 0; }
+body, html, #root { height: 100%; margin: 0; background: #050508; color: #eee; }
 canvas { display: block; }
+
+/* Star labels styled in a Stellarium-like theme */
+.star-label {
+  font-family: Inter, Roboto, Arial, sans-serif;
+  font-size: 12px;
+  color: #e8f0ff;
+  background: rgba(8,10,12,0.6);
+  padding: 4px 6px;
+  border-radius: 4px;
+  pointer-events: auto;
+  text-shadow: 0 0 6px rgba(160,180,255,0.9), 0 0 10px rgba(60,90,180,0.6);
+  border: 1px solid rgba(255,255,255,0.06);
+}

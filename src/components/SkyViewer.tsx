@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls, Html } from '@react-three/drei'
 import * as THREE from 'three'
 
 export type Star = {
@@ -34,7 +34,6 @@ function StarsPoints({ stars }: { stars: Star[] }) {
       positions[i*3+0] = x
       positions[i*3+1] = y
       positions[i*3+2] = z
-      // color approximation: bluish for negative B-V, redder for large B-V
       const bv = s.bv ?? 0.5
       const t = Math.max(0, Math.min(1, (1.0 - (bv/1.5))))
       const r = 1.0 - t*0.5
@@ -64,7 +63,6 @@ export default function SkyViewer({ stars, observerOption }: { stars: Star[], ob
   // For MVP, observerOption 'origin' keeps the camera at origin; 'alpha_centauri' shifts stars relative to that observer
   const transformedStars = useMemo(() => {
     if (observerOption === 'alpha_centauri') {
-      // find alpha centauri in stars by name or fallback position
       const star = stars.find(s => s.name && s.name.toLowerCase().includes('alpha'))
       if (!star) return stars
       const [ox, oy, oz] = raDecToCartesian(star.ra_deg, star.dec_deg, Math.max(0.0001, star.dist_pc))
@@ -79,12 +77,33 @@ export default function SkyViewer({ stars, observerOption }: { stars: Star[], ob
     return stars
   }, [stars, observerOption])
 
+  // Precompute label positions for named/bright stars
+  const labeled = useMemo(() => {
+    const result: { id:number, name:string, pos:[number,number,number] }[] = []
+    for (let i = 0; i < transformedStars.length; i++) {
+      const s = transformedStars[i]
+      if (!s.name) continue
+      // label only relatively bright stars
+      if (s.mag > 2.0) continue
+      const [x,y,z] = raDecToCartesian(s.ra_deg, s.dec_deg, Math.max(0.0001, s.dist_pc))
+      result.push({ id: s.id, name: s.name, pos: [x,y,z] })
+    }
+    return result
+  }, [transformedStars])
+
   return (
-    <Canvas camera={{position:[0,0,50], fov:60}}>
-      <color attach="background" args={[0,0,0]} />
-      <ambientLight intensity={0.5} />
-      <StarsPoints stars={transformedStars} />
-      <OrbitControls />
-    </Canvas>
+    <div style={{width:'100%', height:'100%'}}>
+      <Canvas style={{width:'100%', height:'100%'}} camera={{position:[0,0,50], fov:60}}>
+        <color attach="background" args={[0,0,0]} />
+        <ambientLight intensity={0.5} />
+        <StarsPoints stars={transformedStars} />
+        {labeled.map(l => (
+          <Html key={l.id} position={l.pos} center distanceFactor={8} occlude>
+            <div className="star-label">{l.name}</div>
+          </Html>
+        ))}
+        <OrbitControls />
+      </Canvas>
+    </div>
   )
 }

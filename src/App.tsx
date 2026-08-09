@@ -24,7 +24,7 @@ export default function App() {
             <SkyViewer stars={filtered} observerOption={observer} />
           </Box>
           <Box width={320} p={2}>
-            <Paper elevation={3} sx={{p:2}}>
+            <Paper elevation={3} sx={{p:2, bgcolor: '#0b0c0f', color: '#fff'}}>
               <Typography variant="h6">Controls</Typography>
 
               <FormControl fullWidth margin="normal">
