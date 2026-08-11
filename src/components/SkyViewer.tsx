@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useRef, useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Html } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 
 export type Star = {
@@ -91,19 +91,63 @@ export default function SkyViewer({ stars, observerOption }: { stars: Star[], ob
     return result
   }, [transformedStars])
 
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [viewport, setViewport] = useState({ width: 1200, height: 800 })
+
+  useEffect(() => {
+    const update = () => {
+      if (!containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      setViewport({ width: rect.width, height: rect.height })
+    }
+
+    update()
+    const observer = new ResizeObserver(update)
+    if (containerRef.current) observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  const overlayLabels = useMemo(() => {
+    return labeled.map(label => {
+      const [x, y, z] = label.pos
+      const scale = 180 / Math.max(12, 58 + z)
+      const left = viewport.width * 0.5 + x * scale
+      const top = viewport.height * 0.5 - y * scale
+
+      return {
+        id: label.id,
+        name: label.name,
+        left: Math.max(10, Math.min(left, viewport.width - 80)),
+        top: Math.max(10, Math.min(top, viewport.height - 20))
+      }
+    })
+  }, [labeled, viewport])
+
   return (
-    <div style={{width:'100%', height:'100%'}}>
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas style={{width:'100%', height:'100%'}} camera={{position:[0,0,50], fov:60}}>
         <color attach="background" args={[0,0,0]} />
         <ambientLight intensity={0.5} />
         <StarsPoints stars={transformedStars} />
-        {labeled.map(l => (
-          <Html key={l.id} position={l.pos} center distanceFactor={8} occlude>
-            <div className="star-label">{l.name}</div>
-          </Html>
-        ))}
         <OrbitControls />
       </Canvas>
+
+      <div className="star-label-layer" aria-label="star labels">
+        {overlayLabels.map(label => (
+          <div
+            key={label.id}
+            className="star-label"
+            style={{
+              position: 'absolute',
+              left: `${label.left}px`,
+              top: `${label.top}px`,
+              transform: 'translate(-10%, -50%)'
+            }}
+          >
+            {label.name}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
