@@ -11,6 +11,7 @@ export type Star = {
   dist_pc: number
   mag: number
   bv?: number
+  position?: [number, number, number]
 }
 
 function raDecToCartesian(raDeg: number, decDeg: number, distPc: number) {
@@ -19,7 +20,11 @@ function raDecToCartesian(raDeg: number, decDeg: number, distPc: number) {
   const x = distPc * Math.cos(dec) * Math.cos(ra)
   const y = distPc * Math.cos(dec) * Math.sin(ra)
   const z = distPc * Math.sin(dec)
-  return [x, y, z]
+  return [x, y, z] as [number, number, number]
+}
+
+function starPosition(s: Star): [number, number, number] {
+  return s.position ?? raDecToCartesian(s.ra_deg, s.dec_deg, Math.max(0.0001, s.dist_pc))
 }
 
 function StarsPoints({ stars }: { stars: Star[] }) {
@@ -30,7 +35,7 @@ function StarsPoints({ stars }: { stars: Star[] }) {
 
     for (let i = 0; i < stars.length; i++) {
       const s = stars[i]
-      const [x,y,z] = raDecToCartesian(s.ra_deg, s.dec_deg, Math.max(0.0001, s.dist_pc))
+      const [x,y,z] = starPosition(s)
       positions[i*3+0] = x
       positions[i*3+1] = y
       positions[i*3+2] = z
@@ -60,33 +65,35 @@ function StarsPoints({ stars }: { stars: Star[] }) {
 }
 
 export default function SkyViewer({ stars, observerOption }: { stars: Star[], observerOption: string }) {
-  // For MVP, observerOption 'origin' keeps the camera at origin; 'alpha_centauri' shifts stars relative to that observer
   const transformedStars = useMemo(() => {
     if (observerOption === 'alpha_centauri') {
-      const star = stars.find(s => s.name && s.name.toLowerCase().includes('alpha'))
-      if (!star) return stars
-      const [ox, oy, oz] = raDecToCartesian(star.ra_deg, star.dec_deg, Math.max(0.0001, star.dist_pc))
-      return stars.map(s => ({ ...s, ra_deg: s.ra_deg, dec_deg: s.dec_deg, dist_pc: (() => {
-        const [x,y,z] = raDecToCartesian(s.ra_deg, s.dec_deg, Math.max(0.0001, s.dist_pc))
-        const dx = x - ox
-        const dy = y - oy
-        const dz = z - oz
-        return Math.sqrt(dx*dx + dy*dy + dz*dz)
-      })() }))
+      const observer = stars.find(s => s.name && s.name.toLowerCase().includes('alpha'))
+      if (!observer) return stars
+
+      const [ox, oy, oz] = raDecToCartesian(observer.ra_deg, observer.dec_deg, Math.max(0.0001, observer.dist_pc))
+
+      return stars.map(s => {
+        const [x, y, z] = raDecToCartesian(s.ra_deg, s.dec_deg, Math.max(0.0001, s.dist_pc))
+        return {
+          ...s,
+          position: [x - ox, y - oy, z - oz] as [number, number, number]
+        }
+      })
     }
-    return stars
+
+    return stars.map(s => ({
+      ...s,
+      position: raDecToCartesian(s.ra_deg, s.dec_deg, Math.max(0.0001, s.dist_pc))
+    }))
   }, [stars, observerOption])
 
-  // Precompute label positions for named/bright stars
   const labeled = useMemo(() => {
     const result: { id:number, name:string, pos:[number,number,number] }[] = []
     for (let i = 0; i < transformedStars.length; i++) {
       const s = transformedStars[i]
       if (!s.name) continue
-      // label only relatively bright stars
       if (s.mag > 2.0) continue
-      const [x,y,z] = raDecToCartesian(s.ra_deg, s.dec_deg, Math.max(0.0001, s.dist_pc))
-      result.push({ id: s.id, name: s.name, pos: [x,y,z] })
+      result.push({ id: s.id, name: s.name, pos: starPosition(s) })
     }
     return result
   }, [transformedStars])
